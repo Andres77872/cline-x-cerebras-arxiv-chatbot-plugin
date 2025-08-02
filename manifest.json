@@ -15,5 +15,6 @@
       "js": ["js/content.js"]
     }
   ],
-  "permissions": []
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": ["http://127.0.0.1:8051/*", "http://localhost:8051/*"]
 }
