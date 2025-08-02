@@ -30,27 +30,31 @@ async function logout() {
   }
 }
 
-// Example usage of authenticated API calls
-async function exampleAuthenticatedAPI() {
-  try {
-    // This would be used for any API calls that require authentication
-    // const data = await makeAuthenticatedRequestToBackend('/api/protected-endpoint');
-    // console.log('API response:', data);
-    
-    // Example of making a GET request to a protected endpoint
-    // const getResult = await makeAuthenticatedRequestToBackend('http://127.0.0.1:8051/api/user-data', {
-    //   method: 'GET'
-    // });
-    
-    // Example of making a POST request to a protected endpoint
-    // const postResult = await makeAuthenticatedRequestToBackend('http://127.0.0.1:8051/api/save-data', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ data: 'example data' })
-    // });
-  } catch (error) {
-    console.error('API call error:', error);
-  }
-}
-
 // Add your page-specific functionality here
+
+if (window.location.hostname === 'arxiv.org' && 
+    (window.location.pathname.startsWith('/abs/') || 
+     window.location.pathname.startsWith('/pdf/'))) {
+  // Create floating chat button
+  const button = document.createElement('button');
+  button.id = 'arxiv-chatbot-button';
+  button.textContent = 'Chat with Paper';
+  button.style.position = 'fixed';
+  button.style.bottom = '20px';
+  button.style.right = '20px';
+  button.style.zIndex = '9999';
+  button.style.padding = '10px 20px';
+  button.style.backgroundColor = '#007bff';
+  button.style.color = 'white';
+  button.style.border = 'none';
+  button.style.borderRadius = '5px';
+  button.style.cursor = 'pointer';
+  button.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+
+  button.addEventListener('click', () => {
+    console.log('ArXiv chat button clicked');
+    // Add your chat functionality here
+  });
+
+  document.body.appendChild(button);
+}
