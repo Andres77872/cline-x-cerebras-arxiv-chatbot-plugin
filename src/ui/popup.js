@@ -170,7 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Handle open chatbot button
   openChatbotBtn.addEventListener('click', () => {
     console.log('Open chatbot button clicked');
-    const chatbotUrl = chrome.runtime.getURL('chatbot.html');
+    const chatbotUrl = chrome.runtime.getURL('ui/chatbot.html');
     console.log('Chatbot URL:', chatbotUrl);
     
     chrome.windows.create({

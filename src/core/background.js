@@ -96,7 +96,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Handle open chatbot request from floating button
   if (message.action === 'openChatbot') {
     console.log('Opening chatbot from floating button');
-    const chatbotUrl = chrome.runtime.getURL('chatbot.html');
+    const chatbotUrl = chrome.runtime.getURL('ui/chatbot.html');
     console.log('Chatbot URL:', chatbotUrl);
     
     chrome.windows.create({

@@ -4,20 +4,20 @@
   "version": "0.1.0",
   "author": "Andres77872",
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "src/ui/popup.html"
   },
   "background": {
-    "service_worker": "js/background.js"
+    "service_worker": "src/core/background.js"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["js/content.js"]
+      "js": ["src/core/content.js"]
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["chatbot.html"],
+      "resources": ["src/ui/chatbot.html"],
       "matches": ["<all_urls>"]
     }
   ],
