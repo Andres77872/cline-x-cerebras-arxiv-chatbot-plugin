@@ -9,11 +9,13 @@
             font-family: Arial, sans-serif;
             padding: 15px;
         }
+
         h1 {
             font-size: 18px;
             margin-bottom: 15px;
             text-align: center;
         }
+
         input {
             width: 100%;
             padding: 10px;
@@ -22,6 +24,7 @@
             border: 1px solid #ddd;
             border-radius: 4px;
         }
+
         button {
             background: #007bff;
             color: white;
@@ -33,26 +36,32 @@
             margin: 8px 0;
             font-size: 14px;
         }
+
         button:hover {
             background: #0056b3;
         }
+
         .form-section {
             display: none;
         }
+
         .active {
             display: block;
         }
+
         .message {
             margin: 10px 0;
             padding: 10px;
             border-radius: 4px;
             display: none;
         }
+
         .success {
             background-color: #d4edda;
             color: #155724;
             border: 1px solid #c3e6cb;
         }
+
         .error {
             background-color: #f8d7da;
             color: #721c24;
@@ -61,31 +70,31 @@
     </style>
 </head>
 <body>
-    <h1>Cline Chrome Plugin</h1>
-    
-    <div id="message" class="message"></div>
-    
-    <div id="loginForm" class="form-section active">
-        <input type="text" id="loginUsername" placeholder="Username" required>
-        <input type="password" id="loginPassword" placeholder="Password" required>
-        <button id="loginSubmit">Login</button>
-        <button id="showRegister">Create Account</button>
-    </div>
-    
-    <div id="registerForm" class="form-section">
-        <input type="text" id="registerUsername" placeholder="Username" required>
-        <input type="password" id="registerPassword" placeholder="Password" required>
-        <input type="password" id="registerConfirm" placeholder="Confirm Password" required>
-        <button id="registerSubmit">Register</button>
-        <button id="showLogin">Back to Login</button>
-    </div>
-    
-    <div id="loggedInSection" class="form-section">
-        <p>Logged in as: <span id="currentUsername"></span></p>
-        <button id="openChatbotBtn">Open Chatbot</button>
-        <button id="logoutBtn">Logout</button>
-    </div>
-    
-    <script src="popup.js"></script>
+<h1>Cline Chrome Plugin</h1>
+
+<div class="message" id="message"></div>
+
+<div class="form-section active" id="loginForm">
+    <input id="loginUsername" placeholder="Username" required type="text">
+    <input id="loginPassword" placeholder="Password" required type="password">
+    <button id="loginSubmit">Login</button>
+    <button id="showRegister">Create Account</button>
+</div>
+
+<div class="form-section" id="registerForm">
+    <input id="registerUsername" placeholder="Username" required type="text">
+    <input id="registerPassword" placeholder="Password" required type="password">
+    <input id="registerConfirm" placeholder="Confirm Password" required type="password">
+    <button id="registerSubmit">Register</button>
+    <button id="showLogin">Back to Login</button>
+</div>
+
+<div class="form-section" id="loggedInSection">
+    <p>Logged in as: <span id="currentUsername"></span></p>
+    <button id="openChatbotBtn">Open Chatbot</button>
+    <button id="logoutBtn">Logout</button>
+</div>
+
+<script src="popup.js"></script>
 </body>
 </html>

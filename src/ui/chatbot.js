@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (message) {
             addMessage(message, true);
             messageInput.value = '';
-            
+
             // Simulate bot response
             setTimeout(() => {
                 addMessage("I'm analyzing the paper content. In a real implementation, this would connect to an AI service to provide intelligent responses about the paper.");
@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Example of how to get paper information from the current page
     // This would typically be populated by the content script
     try {
-        chrome.runtime.sendMessage({ action: 'getPaperInfo' }, (response) => {
+        chrome.runtime.sendMessage({action: 'getPaperInfo'}, (response) => {
             if (chrome.runtime.lastError) {
                 console.log('Error getting paper info:', chrome.runtime.lastError);
                 return;
