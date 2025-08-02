@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Arxiv Reader",
+  "version": "0.1.0",
+  "author": "Andres77872",
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "js/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["js/content.js"]
+    }
+  ],
+  "permissions": []
+}
