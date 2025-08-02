@@ -1,3 +1,5 @@
+import { loginUrl, registerUrl, login, register } from '../api/auth.js';
+
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
@@ -76,37 +78,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             console.log('Popup: Attempting login for user:', username);
-            // Use background script for API calls to avoid CORS issues
-            const messagePayload = {
-                action: 'apiRequest',
-                url: 'http://127.0.0.1:8051/auth/login',
-                options: {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({username, password})
-                }
-            };
-            console.log('Popup: Sending message to background:', messagePayload);
-            const response = await chrome.runtime.sendMessage(messagePayload);
+            const response = await login(username, password);
             console.log('Popup: Received response from background:', response);
 
             if (response.success && response.data) {
                 const data = response.data;
-                if (data.success) {
-                    // Save session token to chrome storage
-                    await chrome.storage.local.set({
-                        sessionToken: data.session_token,
-                        username: data.username
-                    });
-                    showMessage('Login successful!');
-                    showLoggedInSection(data.username);
-                    console.log('Session token saved:', data.session_token);
-                } else {
-                    showMessage(data.message || 'Login failed', false);
-                }
+                // Save session token to chrome storage
+                await chrome.storage.local.set({
+                    sessionToken: data.session_token,
+                    username: data.username
+                });
+                showMessage('Login successful!');
+                showLoggedInSection(data.username);
+                console.log('Session token saved:', data.session_token);
             } else {
                 showMessage(response.error || 'Login failed', false);
             }
@@ -133,31 +117,25 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        if (password.length < 6) {
+            showMessage('Password must be at least 6 characters long', false);
+            return;
+        }
+
         try {
-            // Use background script for API calls to avoid CORS issues
-            const response = await chrome.runtime.sendMessage({
-                action: 'apiRequest',
-                url: 'http://127.0.0.1:8051/auth/register',
-                options: {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({username, password})
-                }
-            });
+            console.log('Popup: Attempting registration for user:', username);
+            const response = await register(username, password);
+            console.log('Popup: Received registration response from background:', response);
 
             if (response.success && response.data) {
-                const data = response.data;
-                if (data.success) {
-                    showMessage('Registration successful!');
-                    // Switch to login form after successful registration
-                    registerForm.classList.remove('active');
-                    loginForm.classList.add('active');
-                } else {
-                    showMessage(data.message || 'Registration failed', false);
-                }
+                showMessage('Registration successful!');
+                // Clear form fields
+                document.getElementById('registerUsername').value = '';
+                document.getElementById('registerPassword').value = '';
+                document.getElementById('registerConfirm').value = '';
+                // Switch to login form after successful registration
+                registerForm.classList.remove('active');
+                loginForm.classList.add('active');
             } else {
                 showMessage(response.error || 'Registration failed', false);
             }
