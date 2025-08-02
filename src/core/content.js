@@ -221,21 +221,85 @@ async function sendMessage() {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
     try {
-        // Here you would integrate with your chatbot API
-        // For now, just show a placeholder response
-        setTimeout(() => {
-            typingDiv.remove();
-
-            const botMessageDiv = document.createElement('div');
-            botMessageDiv.className = 'message bot-message';
-            botMessageDiv.style.cssText = 'margin: 10px 0; padding: 8px; border-radius: 5px; background-color: #e9ecef; color: #333; margin-right: 20%; font-size: 13px;';
-            botMessageDiv.textContent = `I received your message: "${message}". This is a placeholder response. Integration with the actual chatbot API will be implemented here.`;
-            chatMessages.appendChild(botMessageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }, 1000);
+        // Get paper info for context
+        const paperInfo = getPaperInfo();
+        const arxivUrl = paperInfo.url || window.location.href;
+        
+        // Build messages array (you might want to maintain conversation history)
+        const messages = [{ role: 'user', content: message }];
+        
+        // Use Chrome extension messaging to call centralized LLM API
+        chrome.runtime.sendMessage({
+            action: 'fetchChatCompletion',
+            model: 'local-model',
+            messages: messages,
+            arxivPaperUrl: arxivUrl
+        }, (response) => {
+            // Remove typing indicator
+            if (typingDiv.parentNode) {
+                typingDiv.remove();
+            }
+            
+            if (chrome.runtime.lastError) {
+                console.error('Chrome runtime error:', chrome.runtime.lastError);
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'message bot-message';
+                errorDiv.style.cssText = 'margin: 10px 0; padding: 8px; border-radius: 5px; background-color: #f8d7da; color: #721c24; margin-right: 20%; font-size: 13px;';
+                errorDiv.textContent = 'Connection error. Please check if the API server is running.';
+                chatMessages.appendChild(errorDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                return;
+            }
+            
+            if (response && response.error) {
+                console.error('API error:', response.error);
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'message bot-message';
+                errorDiv.style.cssText = 'margin: 10px 0; padding: 8px; border-radius: 5px; background-color: #f8d7da; color: #721c24; margin-right: 20%; font-size: 13px;';
+                errorDiv.textContent = response.error;
+                chatMessages.appendChild(errorDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                return;
+            }
+            
+            if (response && response.success) {
+                const botMessageDiv = document.createElement('div');
+                botMessageDiv.className = 'message bot-message';
+                botMessageDiv.style.cssText = 'margin: 10px 0; padding: 8px; border-radius: 5px; background-color: #e9ecef; color: #333; margin-right: 20%; font-size: 13px;';
+                botMessageDiv.textContent = response.data || 'No response received from the API.';
+                chatMessages.appendChild(botMessageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            } else {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'message bot-message';
+                errorDiv.style.cssText = 'margin: 10px 0; padding: 8px; border-radius: 5px; background-color: #f8d7da; color: #721c24; margin-right: 20%; font-size: 13px;';
+                errorDiv.textContent = 'Invalid response format from API.';
+                chatMessages.appendChild(errorDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        });
+        
     } catch (error) {
         console.error('Error sending message:', error);
-        typingDiv.remove();
+        
+        // Remove typing indicator
+        if (typingDiv.parentNode) {
+            typingDiv.remove();
+        }
+        
+        // Show error message
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'message bot-message';
+        errorDiv.style.cssText = 'margin: 10px 0; padding: 8px; border-radius: 5px; background-color: #f8d7da; color: #721c24; margin-right: 20%; font-size: 13px;';
+        
+        let errorMessage = 'Error: ' + error.message;
+        if (error.message.includes('Failed to fetch')) {
+            errorMessage = 'Cannot connect to API server. Please check if the server is running.';
+        }
+        
+        errorDiv.textContent = errorMessage;
+        chatMessages.appendChild(errorDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 }
 

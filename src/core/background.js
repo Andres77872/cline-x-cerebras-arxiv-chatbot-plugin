@@ -60,6 +60,59 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true; // Keep message channel open for async response
     }
 
+    // Handle streaming API request from chatbot
+    if (message.action === 'streamingApiRequest') {
+        console.log('Handling streaming API request to:', message.url);
+        
+        fetch(message.url, {
+            method: 'POST',
+            headers: {
+                'accept': 'application/json',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(message.payload)
+        })
+        .then(async (response) => {
+            console.log('API response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            // Handle streaming response
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            let fullResponse = '';
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                
+                if (done) break;
+                
+                const chunk = decoder.decode(value, { stream: true });
+                buffer += chunk;
+                fullResponse += chunk;
+                
+                console.log('Received chunk:', chunk);
+            }
+            
+            // Process any remaining buffer
+            if (buffer) {
+                fullResponse += decoder.decode();
+            }
+            
+            console.log('Complete streaming response:', fullResponse);
+            sendResponse({ success: true, data: fullResponse });
+        })
+        .catch((error) => {
+            console.error('Streaming API error:', error);
+            sendResponse({ success: false, error: error.message });
+        });
+        
+        return true; // Keep message channel open for async response
+    }
+
     // Handle get paper info request from chatbot
     if (message.action === 'getPaperInfo') {
         // Get the active tab to retrieve paper information
@@ -115,6 +168,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
         return true; // Keep message channel open for async response
     }
+    
+    // Handle centralized LLM requests from content script
+    if (message.action === 'fetchChatCompletion') {
+        console.log('Handling centralized LLM request:', message);
+        
+        // Inline LLM functionality (avoiding dynamic imports in service worker)
+        handleLLMRequest(message.model, message.messages, message.arxivPaperUrl, sendResponse);
+        
+        return true; // Keep message channel open for async response
+    }
 });
 
 // Function to get session token from storage
@@ -158,5 +221,102 @@ async function clearSessionToken() {
         console.log('Session token cleared');
     } catch (error) {
         console.error('Error clearing session token:', error);
+    }
+}
+
+// Centralized LLM request handler (inline to avoid service worker import restrictions)
+async function handleLLMRequest(model, messages, arxivPaperUrl, sendResponse) {
+    try {
+        // Get API URL from storage or use default
+        const { apiUrl } = await chrome.storage.local.get({ 
+            apiUrl: 'http://127.0.0.1:8051/openai/chat/completions' 
+        });
+        
+        console.log('Making centralized LLM API request to:', apiUrl);
+        
+        // Make the API request directly
+        fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'accept': 'application/json',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model,
+                messages,
+                arxiv_paper_url: arxivPaperUrl,
+                stream: true
+            })
+        })
+        .then(async (response) => {
+            console.log('Centralized LLM API response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            // Handle streaming response
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            let fullResponse = '';
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                
+                if (done) break;
+                
+                const chunk = decoder.decode(value, { stream: true });
+                buffer += chunk;
+                
+                // Process complete lines
+                const lines = buffer.split('\n');
+                buffer = lines.pop(); // Keep incomplete line in buffer
+                
+                for (const line of lines) {
+                    if (line.trim()) {
+                        try {
+                            const cleanLine = line.replace(/^data: /, '');
+                            if (cleanLine === '[DONE]') continue;
+                            
+                            const parsed = JSON.parse(cleanLine);
+                            if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
+                                const content = parsed.choices[0].delta.content || '';
+                                fullResponse += content;
+                            }
+                        } catch (e) {
+                            console.warn('Error parsing streaming chunk:', e, 'Line:', line);
+                        }
+                    }
+                }
+            }
+            
+            // Process any remaining buffer
+            if (buffer.trim()) {
+                try {
+                    const cleanLine = buffer.replace(/^data: /, '');
+                    if (cleanLine !== '[DONE]') {
+                        const parsed = JSON.parse(cleanLine);
+                        if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
+                            const content = parsed.choices[0].delta.content || '';
+                            fullResponse += content;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Error parsing final chunk:', e, 'Buffer:', buffer);
+                }
+            }
+            
+            console.log('Complete centralized LLM response:', fullResponse);
+            sendResponse({ success: true, data: fullResponse });
+        })
+        .catch((error) => {
+            console.error('Centralized LLM API error:', error);
+            sendResponse({ success: false, error: error.message });
+        });
+        
+    } catch (error) {
+        console.error('Error in handleLLMRequest:', error);
+        sendResponse({ success: false, error: error.message });
     }
 }
