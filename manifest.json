@@ -15,6 +15,12 @@
       "js": ["js/content.js"]
     }
   ],
-  "permissions": ["storage", "activeTab"],
+  "web_accessible_resources": [
+    {
+      "resources": ["chatbot.html"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "permissions": ["storage", "activeTab", "windows"],
   "host_permissions": ["http://127.0.0.1:8051/*", "http://localhost:8051/*"]
 }

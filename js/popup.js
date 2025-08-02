@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const loginSubmitBtn = document.getElementById('loginSubmit');
   const registerSubmitBtn = document.getElementById('registerSubmit');
   const logoutBtn = document.getElementById('logoutBtn');
+  const openChatbotBtn = document.getElementById('openChatbotBtn');
   const messageDiv = document.getElementById('message');
   const currentUsernameSpan = document.getElementById('currentUsername');
 
@@ -164,6 +165,28 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Registration error:', error);
       showMessage('Network error: ' + error.message, false);
     }
+  });
+
+  // Handle open chatbot button
+  openChatbotBtn.addEventListener('click', () => {
+    console.log('Open chatbot button clicked');
+    const chatbotUrl = chrome.runtime.getURL('chatbot.html');
+    console.log('Chatbot URL:', chatbotUrl);
+    
+    chrome.windows.create({
+      url: chatbotUrl,
+      type: 'popup',
+      width: 450,
+      height: 600
+    }, (window) => {
+      if (chrome.runtime.lastError) {
+        console.error('Error creating chatbot window:', chrome.runtime.lastError);
+        showMessage('Failed to open chatbot: ' + chrome.runtime.lastError.message, false);
+      } else {
+        console.log('Chatbot window created:', window);
+        showMessage('Chatbot opened successfully!');
+      }
+    });
   });
 
   // Check if user is already logged in and show appropriate form

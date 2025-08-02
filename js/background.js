@@ -59,6 +59,62 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
     return true; // Keep message channel open for async response
   }
+
+  // Handle get paper info request from chatbot
+  if (message.action === 'getPaperInfo') {
+    // Get the active tab to retrieve paper information
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (chrome.runtime.lastError) {
+        console.log('Error querying tabs:', chrome.runtime.lastError);
+        sendResponse({ paperInfo: null });
+        return;
+      }
+      
+      if (tabs.length > 0) {
+        const activeTab = tabs[0];
+        // Send message to content script to get paper info
+        chrome.tabs.sendMessage(activeTab.id, { action: 'getPaperInfo' }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.log('Error sending message to content script:', chrome.runtime.lastError);
+            sendResponse({ paperInfo: null });
+            return;
+          }
+          
+          if (response && response.paperInfo) {
+            sendResponse({ paperInfo: response.paperInfo });
+          } else {
+            sendResponse({ paperInfo: null });
+          }
+        });
+      } else {
+        sendResponse({ paperInfo: null });
+      }
+    });
+    return true; // Keep message channel open for async response
+  }
+  
+  // Handle open chatbot request from floating button
+  if (message.action === 'openChatbot') {
+    console.log('Opening chatbot from floating button');
+    const chatbotUrl = chrome.runtime.getURL('chatbot.html');
+    console.log('Chatbot URL:', chatbotUrl);
+    
+    chrome.windows.create({
+      url: chatbotUrl,
+      type: 'popup',
+      width: 450,
+      height: 600
+    }, (window) => {
+      if (chrome.runtime.lastError) {
+        console.error('Error creating chatbot window:', chrome.runtime.lastError);
+        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+      } else {
+        console.log('Chatbot window created:', window);
+        sendResponse({ success: true, message: 'Chatbot opened successfully!' });
+      }
+    });
+    return true; // Keep message channel open for async response
+  }
 });
 
 // Function to get session token from storage
