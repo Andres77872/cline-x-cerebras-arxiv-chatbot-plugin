@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Arxiv Reader",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "author": "Andres77872",
   "action": {
     "default_popup": "popup/popup.html"

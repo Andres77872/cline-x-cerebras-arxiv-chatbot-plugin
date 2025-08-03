@@ -77,16 +77,36 @@ class ArxivChatbotContentScript {
         });
     }
 
+    // Check if current URL is an arXiv page
+    isArxivPage(url) {
+        if (!url) return false;
+        
+        // Match arXiv URLs like:
+        // https://arxiv.org/pdf/XXXX.XXXXX
+        // https://arxiv.org/abs/XXXX.XXXXX
+        // http://arxiv.org/pdf/XXXX.XXXXX
+        // http://arxiv.org/abs/XXXX.XXXXX
+        const arxivPattern = /^https?:\/\/arxiv\.org\/(pdf|abs)\//i;
+        
+        return arxivPattern.test(url);
+    }
+
     // Initialize the floating button
     initializeFloatingButton() {
         try {
-            // Check if we're on a supported page
+            // Check if we're on an arXiv page
             const currentUrl = window.location.href;
             
-            // Only show on specific sites or all URLs based on manifest
-            if (currentUrl) {
+            // Only show on arXiv pages
+            if (this.isArxivPage(currentUrl)) {
                 this.floatingButton.create(this.toggleMenu.bind(this));
-                console.log('Floating button initialized');
+                console.log('Floating button initialized on arXiv page:', currentUrl);
+            } else {
+                console.log('Floating button not shown - not an arXiv page:', currentUrl);
+                // Remove button if it exists and we're not on an arXiv page
+                if (this.floatingButton.exists()) {
+                    this.floatingButton.remove();
+                }
             }
         } catch (error) {
             console.error('Error initializing floating button:', error);
