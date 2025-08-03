@@ -1,5 +1,5 @@
-// Podcast Module
-// Handles podcast generation from arXiv papers with streaming text and audio playback
+// Standalone Podcast Component
+// Creates an independent podcast interface for arXiv papers with streaming text and audio playback
 
 window.ArxivChatbot = window.ArxivChatbot || {};
 window.ArxivChatbot.Podcast = class {
@@ -9,11 +9,14 @@ window.ArxivChatbot.Podcast = class {
         this.currentAudioContext = null;
         this.audioQueue = [];
         this.isPlaying = false;
+        this.podcastWindow = null;
         this.podcastContainer = null;
         this.textContainer = null;
         this.controlsContainer = null;
         this.currentSegments = [];
         this.isGenerating = false;
+        this.arxivPaperUrl = null;
+        this.paperInfo = null;
     }
 
     // Initialize with dependencies
@@ -33,24 +36,138 @@ window.ArxivChatbot.Podcast = class {
         }
     }
 
-    // Setup podcast interface without starting generation
-    async setupPodcastInterface(arxivPaperUrl, container) {
-        if (!arxivPaperUrl) {
-            this.onShowMessage?.('Please provide an arXiv paper URL', 'error');
-            return;
+    // Create and show standalone podcast interface
+    async createStandalonePodcast(paperInfo) {
+        if (!paperInfo || !paperInfo.url) {
+            this.onShowMessage?.('Please provide valid paper information', 'error');
+            return false;
         }
 
+        // Close existing podcast window if open
+        this.closePodcastWindow();
+
+        this.paperInfo = paperInfo;
+        this.arxivPaperUrl = paperInfo.url;
         this.currentSegments = [];
-        this.podcastContainer = container;
-        this.arxivPaperUrl = arxivPaperUrl; // Store for later use
 
         try {
+            await this.createPodcastWindow();
             await this.setupPodcastUI();
             this.updateControls();
+            this.onShowMessage?.('Podcast interface created successfully', 'success');
+            return true;
         } catch (error) {
-            console.error('Podcast interface setup error:', error);
-            this.onShowMessage?.(`Failed to setup podcast interface: ${error.message}`, 'error');
+            console.error('Podcast interface creation error:', error);
+            this.onShowMessage?.(`Failed to create podcast interface: ${error.message}`, 'error');
+            return false;
         }
+    }
+
+    // Create the standalone podcast window
+    createPodcastWindow() {
+        // Create overlay backdrop
+        const backdrop = document.createElement('div');
+        backdrop.id = 'podcast-backdrop';
+        backdrop.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        `;
+
+        // Create podcast window
+        this.podcastWindow = document.createElement('div');
+        this.podcastWindow.id = 'standalone-podcast-window';
+        this.podcastWindow.style.cssText = `
+            background: #1a1a2e;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            border: 1px solid #333;
+            position: relative;
+        `;
+
+        // Add close button
+        const closeButton = document.createElement('button');
+        closeButton.innerHTML = '×';
+        closeButton.style.cssText = `
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #fff;
+            cursor: pointer;
+            z-index: 1;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        `;
+        closeButton.onmouseover = () => {
+            closeButton.style.background = 'rgba(255, 255, 255, 0.1)';
+        };
+        closeButton.onmouseout = () => {
+            closeButton.style.background = 'none';
+        };
+        closeButton.onclick = () => this.closePodcastWindow();
+
+        // Container for podcast content
+        this.podcastContainer = document.createElement('div');
+        this.podcastContainer.id = 'podcast-content-container';
+        this.podcastContainer.style.cssText = `
+            padding: 20px;
+            color: white;
+        `;
+
+        this.podcastWindow.appendChild(closeButton);
+        this.podcastWindow.appendChild(this.podcastContainer);
+        backdrop.appendChild(this.podcastWindow);
+        document.body.appendChild(backdrop);
+
+        // Close on backdrop click
+        backdrop.onclick = (e) => {
+            if (e.target === backdrop) {
+                this.closePodcastWindow();
+            }
+        };
+
+        // Prevent body scroll when podcast is open
+        document.body.style.overflow = 'hidden';
+    }
+
+    // Close the podcast window
+    closePodcastWindow() {
+        const backdrop = document.getElementById('podcast-backdrop');
+        if (backdrop) {
+            backdrop.remove();
+        }
+        this.podcastWindow = null;
+        this.podcastContainer = null;
+        this.stopPodcast();
+        
+        // Restore body scroll
+        document.body.style.overflow = '';
+    }
+
+    // Check if podcast window is open
+    isPodcastWindowOpen() {
+        return document.getElementById('podcast-backdrop') !== null;
     }
 
     // Start podcast generation (called when Play is clicked)
@@ -82,45 +199,88 @@ window.ArxivChatbot.Podcast = class {
     async setupPodcastUI() {
         if (!this.podcastContainer) return;
 
+        // Create header with paper info
+        const paperTitle = this.paperInfo?.title || 'arXiv Paper';
+        
+        // Handle authors - can be string or array
+        let paperAuthors = 'Unknown Authors';
+        if (this.paperInfo?.authors) {
+            if (Array.isArray(this.paperInfo.authors)) {
+                // Handle array format
+                paperAuthors = this.paperInfo.authors.slice(0, 3).join(', ') + 
+                              (this.paperInfo.authors.length > 3 ? ' et al.' : '');
+            } else if (typeof this.paperInfo.authors === 'string') {
+                // Handle string format - truncate if too long
+                const authorsStr = this.paperInfo.authors;
+                if (authorsStr.length > 80) {
+                    paperAuthors = authorsStr.substring(0, 77) + '...';
+                } else {
+                    paperAuthors = authorsStr;
+                }
+            }
+        }
+
         this.podcastContainer.innerHTML = `
             <div class="podcast-wrapper" style="
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                border-radius: 12px;
-                padding: 20px;
+                border-radius: 16px;
+                padding: 25px;
                 color: white;
-                margin: 10px 0;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.2);
             ">
                 <div class="podcast-header" style="
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    margin-bottom: 15px;
+                    text-align: center;
+                    margin-bottom: 25px;
+                    border-bottom: 1px solid rgba(255,255,255,0.2);
+                    padding-bottom: 20px;
                 ">
-                    <h3 style="margin: 0; font-size: 18px; font-weight: 600;">
-                        🎙️ arXiv Podcast
+                    <h2 style="margin: 0 0 10px 0; font-size: 24px; font-weight: 700; line-height: 1.3;">
+                        🎧 Research Podcast
+                    </h2>
+                    <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; opacity: 0.9; line-height: 1.4;">
+                        ${paperTitle}
                     </h3>
-                    <div class="podcast-controls">
-                        <button id="podcast-play-pause" style="
-                            background: rgba(255,255,255,0.2);
-                            border: 1px solid rgba(255,255,255,0.3);
-                            border-radius: 6px;
-                            color: white;
-                            padding: 8px 16px;
-                            cursor: pointer;
-                            font-size: 12px;
-                            margin-right: 8px;
-                        ">▶️ Play</button>
-                        <button id="podcast-stop" style="
-                            background: rgba(255,255,255,0.2);
-                            border: 1px solid rgba(255,255,255,0.3);
-                            border-radius: 6px;
-                            color: white;
-                            padding: 8px 16px;
-                            cursor: pointer;
-                            font-size: 12px;
-                        ">⏹️ Stop</button>
-                    </div>
+                    <p style="margin: 0; font-size: 14px; opacity: 0.7; font-style: italic;">
+                        ${paperAuthors}
+                    </p>
+                </div>
+                <div class="podcast-controls" style="
+                    display: flex;
+                    justify-content: center;
+                    gap: 15px;
+                    margin-bottom: 20px;
+                    align-items: center;
+                ">
+                    <button id="podcast-play-pause" style="
+                        background: linear-gradient(45deg, #4CAF50, #45a049);
+                        border: none;
+                        border-radius: 25px;
+                        color: white;
+                        padding: 12px 24px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        font-weight: 600;
+                        transition: all 0.3s ease;
+                        box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                    ">▶️ Generate & Play</button>
+                    <button id="podcast-stop" style="
+                        background: linear-gradient(45deg, #f44336, #d32f2f);
+                        border: none;
+                        border-radius: 25px;
+                        color: white;
+                        padding: 12px 24px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        font-weight: 600;
+                        transition: all 0.3s ease;
+                        box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                    ">⏹️ Stop</button>
                 </div>
                 <div class="podcast-status" style="
                     background: rgba(255,255,255,0.1);

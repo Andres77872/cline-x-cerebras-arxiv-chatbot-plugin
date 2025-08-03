@@ -155,10 +155,17 @@ class ArxivChatbotContentScript {
         }
     }
 
-    // Setup podcast interface for current arXiv paper
+    // Create standalone podcast interface for current arXiv paper
     async generatePodcast() {
         try {
-            console.log('Setting up podcast interface from floating button');
+            console.log('Creating standalone podcast interface from floating button');
+
+            // Check if user is logged in first
+            const isLoggedIn = await this.chromeMessaging.auth.isLoggedIn();
+            if (!isLoggedIn) {
+                this.utilities.showFloatingMessage('Please log in first by clicking the extension icon', false);
+                return false;
+            }
 
             // Get current paper info
             const paperInfo = this.paperInfo.getPaperInfo();
@@ -167,41 +174,26 @@ class ArxivChatbotContentScript {
                 return false;
             }
 
-            // Check if chatbot is already open, if not create it for podcast display
-            let podcastContainer;
-            if (!this.embeddedChatbot.exists()) {
-                // Create chatbot interface for podcast display
-                const chatbotCallbacks = {
-                    onNewChat: () => this.startNewChat(),
-                    onSendMessage: () => this.sendMessage(),
-                    onClose: () => this.closeChatbot()
-                };
-
-                const success = this.embeddedChatbot.create(paperInfo, chatbotCallbacks);
-                if (!success) {
-                    this.utilities.showFloatingMessage('Failed to create podcast interface', false);
-                    return false;
-                }
-            }
-
-            // Get the podcast container (use chat messages area)
-            podcastContainer = document.getElementById('chat-messages');
-            if (!podcastContainer) {
-                this.utilities.showFloatingMessage('Failed to find podcast container', false);
+            // Check if podcast window is already open
+            if (this.podcast.isPodcastWindowOpen()) {
+                this.utilities.showFloatingMessage('Podcast is already open', false);
                 return false;
             }
 
-            // Setup podcast UI only (don't start streaming yet)
-            this.utilities.showFloatingMessage('Podcast interface ready');
+            // Create standalone podcast interface
+            const success = await this.podcast.createStandalonePodcast(paperInfo);
             
-            // Setup podcast UI with the current paper URL
-            await this.podcast.setupPodcastInterface(paperInfo.url, podcastContainer);
-            
-            return true;
+            if (success) {
+                this.utilities.showFloatingMessage('Podcast interface opened!');
+                return true;
+            } else {
+                this.utilities.showFloatingMessage('Failed to create podcast interface', false);
+                return false;
+            }
 
         } catch (error) {
-            console.error('Error setting up podcast:', error);
-            this.utilities.showFloatingMessage('Error setting up podcast', false);
+            console.error('Error creating podcast:', error);
+            this.utilities.showFloatingMessage('Error creating podcast interface', false);
             return false;
         }
     }
