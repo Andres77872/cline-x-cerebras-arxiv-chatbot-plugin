@@ -1,4 +1,4 @@
-import { loginUrl, registerUrl, login, register } from '../api/auth.js';
+import { loginUrl, registerUrl, login, register } from '../scripts/api/auth.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');

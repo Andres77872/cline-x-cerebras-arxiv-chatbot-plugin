@@ -60,58 +60,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true; // Keep message channel open for async response
     }
 
-    // Handle streaming API request from chatbot
-    if (message.action === 'streamingApiRequest') {
-        console.log('Handling streaming API request to:', message.url);
-        
-        fetch(message.url, {
-            method: 'POST',
-            headers: {
-                'accept': 'application/json',
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(message.payload)
-        })
-        .then(async (response) => {
-            console.log('API response status:', response.status);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            // Handle streaming response
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-            let fullResponse = '';
-            
-            while (true) {
-                const { done, value } = await reader.read();
-                
-                if (done) break;
-                
-                const chunk = decoder.decode(value, { stream: true });
-                buffer += chunk;
-                fullResponse += chunk;
-                
-                console.log('Received chunk:', chunk);
-            }
-            
-            // Process any remaining buffer
-            if (buffer) {
-                fullResponse += decoder.decode();
-            }
-            
-            console.log('Complete streaming response:', fullResponse);
-            sendResponse({ success: true, data: fullResponse });
-        })
-        .catch((error) => {
-            console.error('Streaming API error:', error);
-            sendResponse({ success: false, error: error.message });
-        });
-        
-        return true; // Keep message channel open for async response
-    }
+    // Streaming is now handled directly in chatbot.js - no background script needed
 
     // Handle get paper info request from chatbot
     if (message.action === 'getPaperInfo') {
