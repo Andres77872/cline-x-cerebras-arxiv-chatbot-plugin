@@ -63,7 +63,7 @@ window.ArxivChatbot.EmbeddedChatbot = class {
         } else {
             // Desktop
             chatbotWidth = '380px';
-            chatbotHeight = '520px';
+            chatbotHeight = '640px';
             rightPos = '20px';
             bottomPos = '90px'; // Above floating button
         }
