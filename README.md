@@ -16,7 +16,7 @@ A Chrome extension that enhances your research experience by providing an intell
 
 Before installing the extension, you need to have a local API server running:
 
-- **Local API Server**: The extension connects to `http://localhost:8051` or `http://127.0.0.1:8051`
+- **Production API Server**: The extension connects to `https://col.arz.ai`
 - Ensure your API server supports the chatbot endpoints used by this extension
 
 ## 🔧 Installation

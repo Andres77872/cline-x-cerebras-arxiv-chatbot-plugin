@@ -229,7 +229,7 @@ window.ArxivChatbot.ChromeMessaging = class {
                     };
 
                     // Make request through background script to avoid ad blocker blocking
-                    const baseUrl = 'http://127.0.0.1:8051'; // TODO: Make this configurable
+                    const baseUrl = 'https://col.arz.ai'; // TODO: Make this configurable
                     const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint}`;
                     
                     // Send request to background script

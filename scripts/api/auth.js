@@ -1,4 +1,4 @@
-const BASE_URL = 'http://127.0.0.1:8051';
+const BASE_URL = 'https://col.arz.ai';
 
 export function loginUrl() {
   return `${BASE_URL}/auth/login`;

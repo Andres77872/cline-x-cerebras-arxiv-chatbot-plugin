@@ -353,7 +353,7 @@ window.ArxivChatbot.Podcast = class {
             console.log('Making request to podcast API...');
             
             // Use the same API pattern as other modules but handle streaming
-            const response = await fetch('http://127.0.0.1:8051/podcast/podcast/generate/stream', {
+            const response = await fetch('https://col.arz.ai/podcast/podcast/generate/stream', {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',
@@ -409,14 +409,14 @@ window.ArxivChatbot.Podcast = class {
                 userGuidance = 'This error is typically caused by browser extensions. Please:\n' +
                              '1. Disable ad blockers/privacy extensions temporarily\n' +
                              '2. Check if uBlock Origin, AdBlock, or similar extensions are active\n' +
-                             '3. Add 127.0.0.1:8051 to your extension\'s whitelist\n' +
+                             '3. Add col.arz.ai to your extension\'s whitelist\n' +
                              '4. Try opening in an incognito window with extensions disabled';
                 
                 console.warn('ERR_BLOCKED_BY_CLIENT detected. Common causes:');
                 console.warn('- Ad blockers (uBlock Origin, AdBlock, etc.)');
                 console.warn('- Privacy extensions (Privacy Badger, Ghostery, etc.)');
                 console.warn('- Security extensions blocking localhost requests');
-                console.warn('Solution: Temporarily disable these extensions or whitelist 127.0.0.1:8051');
+                console.warn('Solution: Temporarily disable these extensions or whitelist col.arz.ai');
             } else if (error.message && error.message.includes('HTTP error')) {
                 errorMessage = '🌐 Server error';
                 userGuidance = 'The API server returned an error. Please check that the server is running correctly.';

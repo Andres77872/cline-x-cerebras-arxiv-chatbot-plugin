@@ -209,7 +209,7 @@ async function handleLLMRequest(model, messages, arxivPaperUrl, sendResponse) {
     try {
         // Get API URL and session token from storage
         const { apiUrl, sessionToken } = await chrome.storage.local.get({ 
-            apiUrl: 'http://127.0.0.1:8051/openai/chat/completions',
+            apiUrl: 'https://col.arz.ai/openai/chat/completions',
             sessionToken: null
         });
         
@@ -359,7 +359,7 @@ async function handleStreamingLLMRequest(model, messages, arxivPaperUrl, port) {
     try {
         // Get API URL and session token from storage
         const { apiUrl, sessionToken } = await chrome.storage.local.get({ 
-            apiUrl: 'http://127.0.0.1:8051/openai/chat/completions',
+            apiUrl: 'https://col.arz.ai/openai/chat/completions',
             sessionToken: null
         });
         

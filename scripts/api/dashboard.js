@@ -1,5 +1,5 @@
 // Dashboard API module
-const API_BASE_URL = 'http://127.0.0.1:8051';
+const API_BASE_URL = 'https://col.arz.ai';
 
 /**
  * Get authentication token from storage

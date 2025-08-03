@@ -434,7 +434,7 @@ window.ArxivChatbot.Resume = class {
             console.log('Making request to resume API...');
             
             // Use the same API pattern as podcast module for streaming
-            const response = await fetch('http://127.0.0.1:8051/resume/resume/generate/stream', {
+            const response = await fetch('https://col.arz.ai/resume/resume/generate/stream', {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',
@@ -490,7 +490,7 @@ window.ArxivChatbot.Resume = class {
                 userGuidance = 'This error is typically caused by browser extensions. Please:\n' +
                              '1. Disable ad blockers/privacy extensions temporarily\n' +
                              '2. Check if uBlock Origin, AdBlock, or similar extensions are active\n' +
-                             '3. Add 127.0.0.1:8051 to your extension\'s whitelist\n' +
+                             '3. Add col.arz.ai to your extension\'s whitelist\n' +
                              '4. Try opening in an incognito window with extensions disabled';
             } else if (error.message && error.message.includes('HTTP error')) {
                 errorMessage = '🌐 Server error';
