@@ -12,7 +12,16 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content/content.js"]
+      "js": [
+        "content/modules/utilities.js",
+        "content/modules/chrome-messaging.js",
+        "content/modules/paper-info.js",
+        "content/modules/floating-button.js",
+        "content/modules/floating-menu.js",
+        "content/modules/embedded-chatbot.js",
+        "content/modules/chat-logic.js",
+        "content/content.js"
+      ]
     }
   ],
 
