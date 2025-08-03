@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Arxiv Reader",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "author": "Andres77872",
   "action": {
     "default_popup": "popup/popup.html"
@@ -15,12 +15,7 @@
       "js": ["content/content.js"]
     }
   ],
-  "web_accessible_resources": [
-    {
-      "resources": ["pages/chatbot.html"],
-      "matches": ["<all_urls>"]
-    }
-  ],
+
   "permissions": ["storage", "activeTab", "windows"],
   "host_permissions": ["http://127.0.0.1:8051/*", "http://localhost:8051/*"]
 }

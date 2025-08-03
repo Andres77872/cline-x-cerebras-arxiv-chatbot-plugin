@@ -4,6 +4,9 @@ chrome.runtime.onInstalled.addListener(() => {
     // Perform setup tasks here
 });
 
+// Global variable to track current chat_id (volatile, session-based)
+let currentChatId = null;
+
 // Listen for messages from popup or content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('Message received in background:', message);
@@ -127,6 +130,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         
         return true; // Keep message channel open for async response
     }
+    
+    // Handle new chat creation (reset chat_id)
+    if (message.action === 'newChat') {
+        console.log('Resetting chat_id for new chat');
+        currentChatId = null;
+        sendResponse({ success: true, message: 'Chat ID reset for new chat' });
+        return true;
+    }
 });
 
 // Function to get session token from storage
@@ -197,18 +208,28 @@ async function handleLLMRequest(model, messages, arxivPaperUrl, sendResponse) {
             headers['Authorization'] = `Bearer ${sessionToken}`;
         }
         
+        // Build request payload with conditional chat_id
+        const requestPayload = {
+            model: model || 'local-model',
+            messages: Array.isArray(messages) ? messages : [messages],
+            arxiv_paper_url: arxivPaperUrl || '',
+            stream: true,
+            max_tokens: 2000,
+            temperature: 0.7
+        };
+        
+        // Include chat_id only if it exists
+        if (currentChatId) {
+            requestPayload.chat_id = currentChatId;
+        }
+        
+        console.log('LLM Request payload:', requestPayload);
+        
         // Make the API request directly
         fetch(apiUrl, {
             method: 'POST',
             headers: headers,
-            body: JSON.stringify({
-                model: model || 'local-model',
-                messages: Array.isArray(messages) ? messages : [messages],
-                arxiv_paper_url: arxivPaperUrl || '',
-                stream: true,
-                max_tokens: 2000,
-                temperature: 0.7
-            })
+            body: JSON.stringify(requestPayload)
         })
         .then(async (response) => {
             console.log('Centralized LLM API response status:', response.status);
@@ -251,6 +272,13 @@ async function handleLLMRequest(model, messages, arxivPaperUrl, sendResponse) {
                             if (cleanLine === '[DONE]') continue;
                             
                             const parsed = JSON.parse(cleanLine);
+                            
+                            // Extract chat_id from extras if present
+                            if (parsed.extras && parsed.extras.chat_id) {
+                                currentChatId = parsed.extras.chat_id;
+                                console.log('Extracted chat_id from stream:', currentChatId);
+                            }
+                            
                             if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
                                 const content = parsed.choices[0].delta.content || '';
                                 fullResponse += content;
@@ -268,6 +296,13 @@ async function handleLLMRequest(model, messages, arxivPaperUrl, sendResponse) {
                     const cleanLine = buffer.replace(/^data: /, '');
                     if (cleanLine !== '[DONE]') {
                         const parsed = JSON.parse(cleanLine);
+                        
+                        // Extract chat_id from extras if present
+                        if (parsed.extras && parsed.extras.chat_id) {
+                            currentChatId = parsed.extras.chat_id;
+                            console.log('Extracted chat_id from final chunk:', currentChatId);
+                        }
+                        
                         if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
                             const content = parsed.choices[0].delta.content || '';
                             fullResponse += content;
@@ -279,7 +314,14 @@ async function handleLLMRequest(model, messages, arxivPaperUrl, sendResponse) {
             }
             
             console.log('Complete centralized LLM response:', fullResponse);
-            sendResponse({ success: true, data: fullResponse });
+            console.log('Sending chat_id in response:', currentChatId);
+            const responseObj = { 
+                success: true, 
+                data: fullResponse, 
+                chat_id: currentChatId // Include chat_id in response
+            };
+            console.log('Full response object being sent:', responseObj);
+            sendResponse(responseObj);
         })
         .catch((error) => {
             console.error('Centralized LLM API error:', error);
