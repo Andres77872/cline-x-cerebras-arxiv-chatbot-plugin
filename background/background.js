@@ -176,32 +176,54 @@ async function clearSessionToken() {
 // Centralized LLM request handler (inline to avoid service worker import restrictions)
 async function handleLLMRequest(model, messages, arxivPaperUrl, sendResponse) {
     try {
-        // Get API URL from storage or use default
-        const { apiUrl } = await chrome.storage.local.get({ 
-            apiUrl: 'http://127.0.0.1:8051/openai/chat/completions' 
+        // Get API URL and session token from storage
+        const { apiUrl, sessionToken } = await chrome.storage.local.get({ 
+            apiUrl: 'http://127.0.0.1:8051/openai/chat/completions',
+            sessionToken: null
         });
         
         console.log('Making centralized LLM API request to:', apiUrl);
+        console.log('Background: Request payload:', { model, messages, arxiv_paper_url: arxivPaperUrl, stream: true });
+        console.log('Background: Using session token:', sessionToken ? 'Token present' : 'No token found');
+        
+        // Prepare headers with authorization
+        const headers = {
+            'accept': 'application/json',
+            'Content-Type': 'application/json',
+        };
+        
+        // Add authorization header if session token exists
+        if (sessionToken) {
+            headers['Authorization'] = `Bearer ${sessionToken}`;
+        }
         
         // Make the API request directly
         fetch(apiUrl, {
             method: 'POST',
-            headers: {
-                'accept': 'application/json',
-                'Content-Type': 'application/json',
-            },
+            headers: headers,
             body: JSON.stringify({
-                model,
-                messages,
-                arxiv_paper_url: arxivPaperUrl,
-                stream: true
+                model: model || 'local-model',
+                messages: Array.isArray(messages) ? messages : [messages],
+                arxiv_paper_url: arxivPaperUrl || '',
+                stream: true,
+                max_tokens: 2000,
+                temperature: 0.7
             })
         })
         .then(async (response) => {
             console.log('Centralized LLM API response status:', response.status);
             
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                // For 422 errors, try to get the error details
+                let errorDetails = 'Unknown error';
+                try {
+                    const errorText = await response.text();
+                    console.error('API Error Response Body:', errorText);
+                    errorDetails = errorText || `HTTP ${response.status}`;
+                } catch (e) {
+                    console.error('Could not read error response:', e);
+                }
+                throw new Error(`HTTP error! status: ${response.status}, details: ${errorDetails}`);
             }
             
             // Handle streaming response

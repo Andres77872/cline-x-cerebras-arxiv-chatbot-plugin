@@ -233,7 +233,8 @@ async function sendMessage() {
             action: 'fetchChatCompletion',
             model: 'local-model',
             messages: messages,
-            arxivPaperUrl: arxivUrl
+            arxivPaperUrl: arxivUrl,
+            stream: true
         }, (response) => {
             // Remove typing indicator
             if (typingDiv.parentNode) {
