@@ -19,6 +19,7 @@ class ArxivChatbotContentScript {
         this.floatingMenu = new window.ArxivChatbot.FloatingMenu();
         this.embeddedChatbot = new window.ArxivChatbot.EmbeddedChatbot();
         this.chatLogic = new window.ArxivChatbot.ChatLogic();
+        this.podcast = new window.ArxivChatbot.Podcast();
 
         // Initialize API client
         this.apiClient = this.chromeMessaging.createApiClient();
@@ -37,6 +38,12 @@ class ArxivChatbotContentScript {
     setupModuleDependencies() {
         // Initialize chat logic with dependencies
         this.chatLogic.initialize(
+            this.apiClient,
+            this.utilities.showFloatingMessage.bind(this.utilities)
+        );
+
+        // Initialize podcast with dependencies
+        this.podcast.initialize(
             this.apiClient,
             this.utilities.showFloatingMessage.bind(this.utilities)
         );
@@ -94,7 +101,7 @@ class ArxivChatbotContentScript {
                 this.utilities.showFloatingMessage('Resume feature coming soon!', false);
                 break;
             case 'podcast':
-                this.utilities.showFloatingMessage('Podcast feature coming soon!', false);
+                this.generatePodcast();
                 break;
             default:
                 console.log('Unknown action:', action);
@@ -144,6 +151,57 @@ class ArxivChatbotContentScript {
         } catch (error) {
             console.error('Error opening chatbot:', error);
             this.utilities.showFloatingMessage('Error opening chatbot', false);
+            return false;
+        }
+    }
+
+    // Setup podcast interface for current arXiv paper
+    async generatePodcast() {
+        try {
+            console.log('Setting up podcast interface from floating button');
+
+            // Get current paper info
+            const paperInfo = this.paperInfo.getPaperInfo();
+            if (!paperInfo || !paperInfo.url) {
+                this.utilities.showFloatingMessage('Please navigate to an arXiv paper page first', false);
+                return false;
+            }
+
+            // Check if chatbot is already open, if not create it for podcast display
+            let podcastContainer;
+            if (!this.embeddedChatbot.exists()) {
+                // Create chatbot interface for podcast display
+                const chatbotCallbacks = {
+                    onNewChat: () => this.startNewChat(),
+                    onSendMessage: () => this.sendMessage(),
+                    onClose: () => this.closeChatbot()
+                };
+
+                const success = this.embeddedChatbot.create(paperInfo, chatbotCallbacks);
+                if (!success) {
+                    this.utilities.showFloatingMessage('Failed to create podcast interface', false);
+                    return false;
+                }
+            }
+
+            // Get the podcast container (use chat messages area)
+            podcastContainer = document.getElementById('chat-messages');
+            if (!podcastContainer) {
+                this.utilities.showFloatingMessage('Failed to find podcast container', false);
+                return false;
+            }
+
+            // Setup podcast UI only (don't start streaming yet)
+            this.utilities.showFloatingMessage('Podcast interface ready');
+            
+            // Setup podcast UI with the current paper URL
+            await this.podcast.setupPodcastInterface(paperInfo.url, podcastContainer);
+            
+            return true;
+
+        } catch (error) {
+            console.error('Error setting up podcast:', error);
+            this.utilities.showFloatingMessage('Error setting up podcast', false);
             return false;
         }
     }
