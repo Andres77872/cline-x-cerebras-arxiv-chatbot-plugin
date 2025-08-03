@@ -7,6 +7,26 @@ chrome.runtime.onInstalled.addListener(() => {
 // Global variable to track current chat_id (volatile, session-based)
 let currentChatId = null;
 
+// Handle port connections for streaming
+chrome.runtime.onConnect.addListener((port) => {
+    console.log('Port connected:', port.name);
+    
+    if (port.name === 'chatbot-stream') {
+        port.onMessage.addListener((message) => {
+            console.log('Received message on port:', message);
+            
+            if (message.action === 'fetchChatCompletion') {
+                // Handle streaming LLM request
+                handleStreamingLLMRequest(message.model, message.messages, message.arxivPaperUrl, port);
+            }
+        });
+        
+        port.onDisconnect.addListener(() => {
+            console.log('Port disconnected:', port.name);
+        });
+    }
+});
+
 // Listen for messages from popup or content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('Message received in background:', message);
@@ -331,5 +351,189 @@ async function handleLLMRequest(model, messages, arxivPaperUrl, sendResponse) {
     } catch (error) {
         console.error('Error in handleLLMRequest:', error);
         sendResponse({ success: false, error: error.message });
+    }
+}
+
+// New streaming LLM request handler for real-time port-based communication
+async function handleStreamingLLMRequest(model, messages, arxivPaperUrl, port) {
+    try {
+        // Get API URL and session token from storage
+        const { apiUrl, sessionToken } = await chrome.storage.local.get({ 
+            apiUrl: 'http://127.0.0.1:8051/openai/chat/completions',
+            sessionToken: null
+        });
+        
+        console.log('Making streaming LLM API request to:', apiUrl);
+        console.log('Streaming: Request payload:', { model, messages, arxiv_paper_url: arxivPaperUrl, stream: true });
+        console.log('Streaming: Using session token:', sessionToken ? 'Token present' : 'No token found');
+        
+        // Prepare headers with authorization
+        const headers = {
+            'accept': 'application/json',
+            'Content-Type': 'application/json',
+        };
+        
+        // Add authorization header if session token exists
+        if (sessionToken) {
+            headers['Authorization'] = `Bearer ${sessionToken}`;
+        }
+        
+        // Build request payload with conditional chat_id
+        const requestPayload = {
+            model: model || 'local-model',
+            messages: Array.isArray(messages) ? messages : [messages],
+            arxiv_paper_url: arxivPaperUrl || '',
+            stream: true,
+            max_tokens: 2000,
+            temperature: 0.7
+        };
+        
+        // Include chat_id only if it exists
+        if (currentChatId) {
+            requestPayload.chat_id = currentChatId;
+        }
+        
+        console.log('Streaming LLM Request payload:', requestPayload);
+        
+        // Make the API request directly
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(requestPayload)
+        });
+        
+        console.log('Streaming LLM API response status:', response.status);
+        
+        if (!response.ok) {
+            // For 422 errors, try to get the error details
+            let errorDetails = 'Unknown error';
+            try {
+                const errorText = await response.text();
+                console.error('API Error Response Body:', errorText);
+                errorDetails = errorText || `HTTP ${response.status}`;
+            } catch (e) {
+                console.error('Could not read error response:', e);
+            }
+            
+            // Send error to content script
+            port.postMessage({
+                type: 'error',
+                error: `HTTP error! status: ${response.status}, details: ${errorDetails}`
+            });
+            return;
+        }
+        
+        // Handle streaming response
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        
+        try {
+            while (true) {
+                const { done, value } = await reader.read();
+                
+                if (done) break;
+                
+                const chunk = decoder.decode(value, { stream: true });
+                buffer += chunk;
+                
+                // Process complete lines
+                const lines = buffer.split('\n');
+                buffer = lines.pop(); // Keep incomplete line in buffer
+                
+                for (const line of lines) {
+                    if (line.trim()) {
+                        try {
+                            const cleanLine = line.replace(/^data: /, '');
+                            if (cleanLine === '[DONE]') continue;
+                            
+                            const parsed = JSON.parse(cleanLine);
+                            
+                            // Extract chat_id from extras if present
+                            if (parsed.extras && parsed.extras.chat_id) {
+                                currentChatId = parsed.extras.chat_id;
+                                console.log('Extracted chat_id from stream:', currentChatId);
+                                
+                                // Send chat_id to content script
+                                port.postMessage({
+                                    type: 'chat_id',
+                                    chat_id: currentChatId
+                                });
+                            }
+                            
+                            // Send content chunks immediately to content script
+                            if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
+                                const content = parsed.choices[0].delta.content || '';
+                                if (content) {
+                                    console.log('Sending chunk to content script:', content);
+                                    port.postMessage({
+                                        type: 'chunk',
+                                        content: content
+                                    });
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('Error parsing streaming chunk:', e, 'Line:', line);
+                        }
+                    }
+                }
+            }
+            
+            // Process any remaining buffer
+            if (buffer.trim()) {
+                try {
+                    const cleanLine = buffer.replace(/^data: /, '');
+                    if (cleanLine !== '[DONE]') {
+                        const parsed = JSON.parse(cleanLine);
+                        
+                        // Extract chat_id from extras if present
+                        if (parsed.extras && parsed.extras.chat_id) {
+                            currentChatId = parsed.extras.chat_id;
+                            console.log('Extracted chat_id from final chunk:', currentChatId);
+                            
+                            // Send chat_id to content script
+                            port.postMessage({
+                                type: 'chat_id',
+                                chat_id: currentChatId
+                            });
+                        }
+                        
+                        // Send final content chunk
+                        if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
+                            const content = parsed.choices[0].delta.content || '';
+                            if (content) {
+                                console.log('Sending final chunk to content script:', content);
+                                port.postMessage({
+                                    type: 'chunk',
+                                    content: content
+                                });
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Error parsing final chunk:', e, 'Buffer:', buffer);
+                }
+            }
+            
+            // Signal completion
+            console.log('Streaming complete, sending completion signal');
+            port.postMessage({
+                type: 'complete'
+            });
+            
+        } catch (streamError) {
+            console.error('Error reading stream:', streamError);
+            port.postMessage({
+                type: 'error',
+                error: `Stream reading error: ${streamError.message}`
+            });
+        }
+        
+    } catch (error) {
+        console.error('Error in handleStreamingLLMRequest:', error);
+        port.postMessage({
+            type: 'error',
+            error: error.message
+        });
     }
 }

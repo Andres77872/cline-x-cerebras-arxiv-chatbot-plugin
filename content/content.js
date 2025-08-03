@@ -334,75 +334,80 @@ async function sendMessage() {
             loadingElement.remove();
         }
         
-        // Create bot message element for real-time updates
+        // Create bot message element for real-time streaming updates
         if (!botMessageElement) {
             botMessageElement = document.createElement('div');
             botMessageElement.className = 'message bot-message';
-            botMessageElement.style.cssText = 'margin: 10px 0; padding: 8px; border-radius: 5px; background-color: #e9ecef; color: #333; margin-right: 20%; font-size: 13px;';
+            botMessageElement.style.cssText = 'margin: 10px 0; padding: 12px 16px; border-radius: 18px 18px 18px 4px; background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); color: #334155; margin-right: 20%; font-size: 13px; line-height: 1.4; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;';
             botMessageElement.textContent = '';
             chatMessagesContainer.appendChild(botMessageElement);
             chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
         }
         
-        // Use Chrome extension messaging to call centralized LLM API
-        console.log('Chatbot: Sending request with messages:', chatMessages);
-        console.log('Chatbot: ArXiv URL:', arxivUrl);
+        // Create streaming connection using chrome.runtime.connect for real-time updates
+        console.log('Chatbot: Starting streaming connection');
+        const port = chrome.runtime.connect({ name: 'chatbot-stream' });
         
-        chrome.runtime.sendMessage({
+        let streamingComplete = false;
+        let accumulatedResponse = '';
+        
+        // Listen for streaming messages
+        port.onMessage.addListener((message) => {
+            console.log('Chatbot: Received streaming message:', message);
+            
+            if (message.type === 'chunk') {
+                // Update bot message with new chunk in real-time
+                accumulatedResponse += message.content;
+                if (botMessageElement) {
+                    botMessageElement.textContent = accumulatedResponse;
+                    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+                }
+            } else if (message.type === 'chat_id') {
+                // Update chat ID display
+                console.log('Chatbot: Received chat_id:', message.chat_id);
+                updateChatIdDisplay(message.chat_id);
+            } else if (message.type === 'complete') {
+                // Streaming complete
+                streamingComplete = true;
+                console.log('Chatbot: Streaming complete');
+                
+                // Add the complete message to conversation history
+                if (accumulatedResponse) {
+                    chatMessages.push({ role: 'assistant', content: accumulatedResponse });
+                }
+                
+                // Reset for next message
+                botMessageElement = null;
+                port.disconnect();
+            } else if (message.type === 'error') {
+                // Handle streaming error
+                console.error('Streaming error:', message.error);
+                if (botMessageElement) {
+                    botMessageElement.style.cssText = 'margin: 10px 0; padding: 12px 16px; border-radius: 18px 18px 18px 4px; background: #f8d7da; color: #721c24; margin-right: 20%; font-size: 13px; line-height: 1.4; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #f5c6cb;';
+                    botMessageElement.textContent = message.error;
+                }
+                botMessageElement = null;
+                port.disconnect();
+            }
+        });
+        
+        // Handle port disconnection
+        port.onDisconnect.addListener(() => {
+            console.log('Chatbot: Port disconnected');
+            if (!streamingComplete && botMessageElement) {
+                // If disconnected unexpectedly, show error
+                botMessageElement.style.cssText = 'margin: 10px 0; padding: 12px 16px; border-radius: 18px 18px 18px 4px; background: #f8d7da; color: #721c24; margin-right: 20%; font-size: 13px; line-height: 1.4; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #f5c6cb;';
+                botMessageElement.textContent = 'Connection lost during streaming.';
+                botMessageElement = null;
+            }
+        });
+        
+        // Send the initial request
+        port.postMessage({
             action: 'fetchChatCompletion',
             model: 'local-model',
             messages: chatMessages,
             arxivPaperUrl: arxivUrl
-        }, (response) => {
-            console.log('Chatbot: Received response:', response);
-            console.log('Chatbot: Response chat_id:', response?.chat_id);
-            
-            if (chrome.runtime.lastError) {
-                console.error('Chrome runtime error:', chrome.runtime.lastError);
-                if (botMessageElement) {
-                    botMessageElement.style.cssText = 'margin: 10px 0; padding: 8px; border-radius: 5px; background-color: #f8d7da; color: #721c24; margin-right: 20%; font-size: 13px;';
-                    botMessageElement.textContent = 'Connection error. Please check if the API server is running.';
-                }
-                return;
-            }
-            
-            if (response && response.error) {
-                console.error('API error:', response.error);
-                if (botMessageElement) {
-                    botMessageElement.style.cssText = 'margin: 10px 0; padding: 8px; border-radius: 5px; background-color: #f8d7da; color: #721c24; margin-right: 20%; font-size: 13px;';
-                    botMessageElement.textContent = response.error;
-                }
-                return;
-            }
-            
-            if (response && response.success) {
-                // Update bot message with complete response
-                const content = response.data;
-                if (botMessageElement) {
-                    botMessageElement.textContent = content;
-                    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
-                }
-                
-                // Update chat_id display if present in response
-                console.log('Chatbot: Checking for chat_id in response...');
-                if (response.chat_id) {
-                    console.log('Chatbot: Found chat_id, updating display:', response.chat_id);
-                    updateChatIdDisplay(response.chat_id);
-                } else {
-                    console.log('Chatbot: No chat_id found in response');
-                }
-                
-                // Add the complete message to conversation history
-                chatMessages.push({ role: 'assistant', content: content });
-                
-                // Reset for next message
-                botMessageElement = null;
-            } else {
-                if (botMessageElement) {
-                    botMessageElement.style.cssText = 'margin: 10px 0; padding: 8px; border-radius: 5px; background-color: #f8d7da; color: #721c24; margin-right: 20%; font-size: 13px;';
-                    botMessageElement.textContent = 'Invalid response format from API.';
-                }
-            }
         });
         
     } catch (error) {
@@ -415,7 +420,7 @@ async function sendMessage() {
         
         // Show error message
         if (botMessageElement) {
-            botMessageElement.style.cssText = 'margin: 10px 0; padding: 8px; border-radius: 5px; background-color: #f8d7da; color: #721c24; margin-right: 20%; font-size: 13px;';
+            botMessageElement.style.cssText = 'margin: 10px 0; padding: 12px 16px; border-radius: 18px 18px 18px 4px; background: #f8d7da; color: #721c24; margin-right: 20%; font-size: 13px; line-height: 1.4; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #f5c6cb;';
             
             let errorMessage = 'Error: ' + error.message;
             if (error.message.includes('Failed to fetch')) {
