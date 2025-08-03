@@ -51,14 +51,169 @@ function createFloatingChatButton() {
         floatButton.style.backgroundColor = '#4f46e5';
     });
 
-    // Add click handler
-    floatButton.addEventListener('click', openChatbot);
+    // Add click handler to show menu
+    floatButton.addEventListener('click', toggleMenu);
 
     // Add tooltip
-    floatButton.title = 'Open ArXiv Chatbot';
+    floatButton.title = 'Open ArXiv Chatbot Menu';
 
     // Inject into page
     document.body.appendChild(floatButton);
+}
+
+// Function to toggle the menu
+function toggleMenu() {
+    const existingMenu = document.getElementById('arxiv-chatbot-menu');
+    
+    if (existingMenu) {
+        // If menu exists, remove it
+        existingMenu.remove();
+    } else {
+        // Create and show the menu
+        createFloatingMenu();
+    }
+}
+
+// Function to create the floating menu
+function createFloatingMenu() {
+    const menu = document.createElement('div');
+    menu.id = 'arxiv-chatbot-menu';
+    
+    menu.innerHTML = `
+        <div class="menu-option" data-action="chat">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2ZM20 16H5.17L4 17.17V4H20V16Z" fill="currentColor"/>
+                <circle cx="7" cy="9" r="1" fill="currentColor"/>
+                <circle cx="12" cy="9" r="1" fill="currentColor"/>
+                <circle cx="17" cy="9" r="1" fill="currentColor"/>
+            </svg>
+            <span>Chat</span>
+        </div>
+        <div class="menu-option" data-action="resume">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" fill="currentColor"/>
+            </svg>
+            <span>Resume</span>
+            <span class="wip-badge">WIP</span>
+        </div>
+        <div class="menu-option" data-action="podcast">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z" fill="currentColor"/>
+            </svg>
+            <span>Podcast</span>
+            <span class="wip-badge">WIP</span>
+        </div>
+    `;
+    
+    // Style the menu
+    Object.assign(menu.style, {
+        position: 'fixed',
+        bottom: '90px',
+        right: '20px',
+        backgroundColor: 'white',
+        borderRadius: '12px',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+        border: '1px solid rgba(0, 0, 0, 0.08)',
+        overflow: 'hidden',
+        zIndex: '10001',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        minWidth: '160px',
+        animation: 'menuSlideIn 0.2s ease-out'
+    });
+    
+    // Add CSS animation for smooth appearance
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes menuSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        
+        #arxiv-chatbot-menu .menu-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            color: #374151;
+            position: relative;
+        }
+        
+        #arxiv-chatbot-menu .menu-option:hover {
+            background-color: #f3f4f6;
+        }
+        
+        #arxiv-chatbot-menu .menu-option[data-action="resume"]:hover,
+        #arxiv-chatbot-menu .menu-option[data-action="podcast"]:hover {
+            background-color: #fef3c7;
+        }
+        
+        #arxiv-chatbot-menu .menu-option span:first-of-type {
+            font-weight: 500;
+            flex: 1;
+        }
+        
+        #arxiv-chatbot-menu .wip-badge {
+            background-color: #fbbf24;
+            color: #92400e;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        #arxiv-chatbot-menu .menu-option:not(:last-child) {
+            border-bottom: 1px solid #f3f4f6;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Add event listeners to menu options
+    menu.addEventListener('click', (e) => {
+        const option = e.target.closest('.menu-option');
+        if (option) {
+            const action = option.dataset.action;
+            handleMenuAction(action);
+            menu.remove(); // Close menu after selection
+        }
+    });
+    
+    // Close menu when clicking outside
+    setTimeout(() => {
+        document.addEventListener('click', (e) => {
+            if (!menu.contains(e.target) && !document.getElementById('arxiv-chatbot-float-btn').contains(e.target)) {
+                menu.remove();
+            }
+        }, { once: true });
+    }, 100);
+    
+    document.body.appendChild(menu);
+}
+
+// Function to handle menu actions
+function handleMenuAction(action) {
+    switch (action) {
+        case 'chat':
+            openChatbot();
+            break;
+        case 'resume':
+            showFloatingMessage('Resume feature coming soon!', false);
+            break;
+        case 'podcast':
+            showFloatingMessage('Podcast feature coming soon!', false);
+            break;
+        default:
+            console.log('Unknown action:', action);
+    }
 }
 
 // Function to open embedded chatbot
@@ -192,12 +347,33 @@ function createEmbeddedChatbot() {
 
     // Add event listeners
     setupChatbotEventListeners();
+    
+    // Add click-outside-to-close functionality
+    setTimeout(() => {
+        const handleClickOutside = (event) => {
+            // Check if click is outside chatbot and not on the float button or menu
+            if (!chatbotEmbed.contains(event.target) && 
+                !document.getElementById('arxiv-chatbot-float-btn')?.contains(event.target) &&
+                !document.getElementById('arxiv-chatbot-menu')?.contains(event.target)) {
+                closeChatbot();
+                document.removeEventListener('click', handleClickOutside);
+            }
+        };
+        document.addEventListener('click', handleClickOutside);
+        
+        // Store the handler so we can remove it when chatbot is closed
+        chatbotEmbed.clickOutsideHandler = handleClickOutside;
+    }, 100);
 }
 
 // Function to close embedded chatbot
 function closeChatbot() {
     const chatbotEmbed = document.getElementById('arxiv-chatbot-embed');
     if (chatbotEmbed) {
+        // Clean up click outside handler if it exists
+        if (chatbotEmbed.clickOutsideHandler) {
+            document.removeEventListener('click', chatbotEmbed.clickOutsideHandler);
+        }
         chatbotEmbed.remove();
         showFloatingMessage('Chatbot closed');
     }
@@ -446,18 +622,27 @@ function showFloatingMessage(message, isSuccess = true) {
 
     Object.assign(messageDiv.style, {
         position: 'fixed',
-        bottom: '100px',
-        right: '20px',
-        padding: '12px 16px',
+        top: '20px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        padding: '12px 20px',
         borderRadius: '8px',
         backgroundColor: isSuccess ? '#10b981' : '#ef4444',
         color: 'white',
         fontSize: '14px',
         fontFamily: 'system-ui, -apple-system, sans-serif',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-        zIndex: '10001',
+        fontWeight: '500',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08)',
+        zIndex: '10002',
         opacity: '0',
-        transition: 'opacity 0.3s ease'
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        maxWidth: '400px',
+        textAlign: 'center',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis'
     });
 
     document.body.appendChild(messageDiv);
