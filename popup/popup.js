@@ -1,20 +1,19 @@
-import { loginUrl, registerUrl, login, register } from '../scripts/api/auth.js';
-import { 
-    getUserProfile, 
-    getChatMetrics, 
-    getDocumentMetrics, 
-    getUsageAnalytics, 
-    getRecentActivity, 
-    getCompleteDashboard,
-    checkApiStatus 
-} from '../scripts/api/dashboard.js';
+// 🚧 WORK IN PROGRESS 🚧
+// Popup JavaScript functionality
+// This file is currently being redesigned and refactored.
+// Configuration functionality has been temporarily removed.
+
+// Import authentication and dashboard functions
+import { login, register } from '../scripts/api/auth.js';
+import { getCompleteDashboard, checkApiStatus } from '../scripts/api/dashboard.js';
+
+console.log('Popup script loaded - WIP mode');
 
 document.addEventListener('DOMContentLoaded', () => {
     // Form sections
     const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
     const loggedInSection = document.getElementById('loggedInSection');
-    const configSection = document.getElementById('configSection');
     const dashboardSection = document.getElementById('dashboardSection');
     
     // Navigation tabs
@@ -30,29 +29,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const messageDiv = document.getElementById('message');
     const currentUsernameSpan = document.getElementById('currentUsername');
     
-    // Configuration elements
-    const saveConfigBtn = document.getElementById('saveConfig');
-    const resetConfigBtn = document.getElementById('resetConfig');
-    const temperatureSlider = document.getElementById('temperature');
-    const temperatureValue = document.getElementById('temperatureValue');
+    // Configuration elements - WIP (removed)
     
     // Dashboard elements
     const clearDataBtn = document.getElementById('clearData');
     const exportDataBtn = document.getElementById('exportData');
     const refreshDashboardBtn = document.getElementById('refreshDashboard');
     
-    // Default configuration
-    const defaultConfig = {
-        apiEndpoint: 'http://localhost:8051',
-        apiKey: '',
-        requestTimeout: 30,
-        defaultModel: 'llama3.1-8b',
-        maxTokens: 1000,
-        temperature: 0.7,
-        autoSummarize: true,
-        showNotifications: true,
-        saveHistory: true
-    };
+    // Configuration - WIP (temporarily removed)
     
     // Initialize statistics
     const defaultStats = {
@@ -247,52 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Configuration functionality
-    function loadConfiguration() {
-        chrome.storage.local.get(['extensionConfig'], (result) => {
-            const config = result.extensionConfig || defaultConfig;
-            
-            document.getElementById('apiEndpoint').value = config.apiEndpoint;
-            document.getElementById('apiKey').value = config.apiKey;
-            document.getElementById('requestTimeout').value = config.requestTimeout;
-            document.getElementById('defaultModel').value = config.defaultModel;
-            document.getElementById('maxTokens').value = config.maxTokens;
-            document.getElementById('temperature').value = config.temperature;
-            document.getElementById('temperatureValue').textContent = config.temperature;
-            document.getElementById('autoSummarize').checked = config.autoSummarize;
-            document.getElementById('showNotifications').checked = config.showNotifications;
-            document.getElementById('saveHistory').checked = config.saveHistory;
-        });
-    }
-    
-    function saveConfiguration() {
-        const config = {
-            apiEndpoint: document.getElementById('apiEndpoint').value,
-            apiKey: document.getElementById('apiKey').value,
-            requestTimeout: parseInt(document.getElementById('requestTimeout').value),
-            defaultModel: document.getElementById('defaultModel').value,
-            maxTokens: parseInt(document.getElementById('maxTokens').value),
-            temperature: parseFloat(document.getElementById('temperature').value),
-            autoSummarize: document.getElementById('autoSummarize').checked,
-            showNotifications: document.getElementById('showNotifications').checked,
-            saveHistory: document.getElementById('saveHistory').checked
-        };
-        
-        chrome.storage.local.set({ extensionConfig: config }, () => {
-            showMessage('Configuration saved successfully!');
-            // Update dashboard if it's visible
-            updateApiStatus();
-        });
-    }
-    
-    function resetConfiguration() {
-        if (confirm('Are you sure you want to reset all settings to defaults?')) {
-            chrome.storage.local.set({ extensionConfig: defaultConfig }, () => {
-                loadConfiguration();
-                showMessage('Configuration reset to defaults!');
-            });
-        }
-    }
+    // Configuration functionality - WIP (temporarily removed)
     
     // Dashboard functionality - Load data from API
     async function loadDashboardData() {
@@ -546,14 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Event listeners for configuration
-    saveConfigBtn.addEventListener('click', saveConfiguration);
-    resetConfigBtn.addEventListener('click', resetConfiguration);
-    
-    // Temperature slider update
-    temperatureSlider.addEventListener('input', (e) => {
-        temperatureValue.textContent = e.target.value;
-    });
+    // Configuration event listeners - WIP (temporarily removed)
     
     // Event listeners for dashboard
     clearDataBtn.addEventListener('click', clearAllData);

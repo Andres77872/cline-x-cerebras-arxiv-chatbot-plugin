@@ -264,7 +264,6 @@
 
 <div class="nav-tabs">
     <button class="nav-tab active" data-section="loginForm">Auth</button>
-    <button class="nav-tab" data-section="configSection">Config</button>
     <button class="nav-tab" data-section="dashboardSection">Dashboard</button>
 </div>
 
@@ -292,73 +291,8 @@
     <button id="logoutBtn" class="secondary">Logout</button>
 </div>
 
-<!-- Configuration Section -->
-<div class="form-section" id="configSection">
-    <div class="config-group">
-        <h3>API Settings</h3>
-        <div class="config-item">
-            <label for="apiEndpoint">API Endpoint</label>
-            <input type="url" id="apiEndpoint" placeholder="http://localhost:8051" />
-        </div>
-        <div class="config-item">
-            <label for="apiKey">API Key (Optional)</label>
-            <input type="password" id="apiKey" placeholder="Enter your API key" />
-        </div>
-        <div class="config-item">
-            <label for="requestTimeout">Request Timeout (seconds)</label>
-            <input type="number" id="requestTimeout" min="5" max="300" value="30" />
-        </div>
-    </div>
-
-    <div class="config-group">
-        <h3>Model Settings</h3>
-        <div class="config-item">
-            <label for="defaultModel">Default Model</label>
-            <select id="defaultModel">
-                <option value="llama3.1-8b">Llama 3.1 8B</option>
-                <option value="llama3.1-70b">Llama 3.1 70B</option>
-                <option value="mixtral-8x7b">Mixtral 8x7B</option>
-            </select>
-        </div>
-        <div class="config-item">
-            <label for="maxTokens">Max Tokens</label>
-            <input type="number" id="maxTokens" min="100" max="4000" value="1000" />
-        </div>
-        <div class="config-item">
-            <label for="temperature">Temperature</label>
-            <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.7" />
-            <span id="temperatureValue">0.7</span>
-        </div>
-    </div>
-
-    <div class="config-group">
-        <h3>Extension Preferences</h3>
-        <div class="config-item">
-            <label for="autoSummarize">Auto-summarize ArXiv papers</label>
-            <label class="toggle-switch">
-                <input type="checkbox" id="autoSummarize" checked>
-                <span class="slider"></span>
-            </label>
-        </div>
-        <div class="config-item">
-            <label for="showNotifications">Show notifications</label>
-            <label class="toggle-switch">
-                <input type="checkbox" id="showNotifications" checked>
-                <span class="slider"></span>
-            </label>
-        </div>
-        <div class="config-item">
-            <label for="saveHistory">Save chat history</label>
-            <label class="toggle-switch">
-                <input type="checkbox" id="saveHistory" checked>
-                <span class="slider"></span>
-            </label>
-        </div>
-    </div>
-
-    <button id="saveConfig">Save Configuration</button>
-    <button id="resetConfig" class="secondary">Reset to Defaults</button>
-</div>
+<!-- Configuration Section - WIP -->
+<!-- Config functionality temporarily removed -->
 
 <!-- Dashboard Section -->
 <div class="form-section" id="dashboardSection">
