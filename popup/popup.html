@@ -5,40 +5,104 @@
     <title>Cline Plugin</title>
     <style>
         body {
-            width: 300px;
-            font-family: Arial, sans-serif;
-            padding: 15px;
+            width: 350px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 0;
+            margin: 0;
+            background-color: #f8f9fa;
         }
 
-        h1 {
-            font-size: 18px;
-            margin-bottom: 15px;
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
             text-align: center;
         }
 
-        input {
+        .header h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background-color: white;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 12px 8px;
+            text-align: center;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tab:hover {
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+        .nav-tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            background-color: #f8f9fa;
+        }
+
+        .content {
+            padding: 20px;
+            background-color: white;
+            min-height: 300px;
+        }
+
+        input, select, textarea {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             margin: 8px 0;
             box-sizing: border-box;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
         }
 
         button {
-            background: #007bff;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: 10px 16px;
-            border-radius: 4px;
+            padding: 12px 20px;
+            border-radius: 6px;
             cursor: pointer;
             width: 100%;
             margin: 8px 0;
             font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
         }
 
         button:hover {
-            background: #0056b3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        button.secondary {
+            background: #6c757d;
+        }
+
+        button.secondary:hover {
+            background: #5a6268;
+            box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
         }
 
         .form-section {
@@ -51,9 +115,10 @@
 
         .message {
             margin: 10px 0;
-            padding: 10px;
-            border-radius: 4px;
+            padding: 12px;
+            border-radius: 6px;
             display: none;
+            font-size: 14px;
         }
 
         .success {
@@ -67,12 +132,144 @@
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
+
+        .config-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .config-group h3 {
+            margin: 0 0 15px 0;
+            color: #495057;
+            font-size: 16px;
+        }
+
+        .config-item {
+            margin-bottom: 15px;
+        }
+
+        .config-item label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #495057;
+            font-size: 13px;
+        }
+
+        .dashboard-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .dashboard-card h3 {
+            margin: 0 0 10px 0;
+            color: #495057;
+            font-size: 16px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f3f4;
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online {
+            background-color: #28a745;
+        }
+
+        .status-offline {
+            background-color: #dc3545;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #667eea;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
     </style>
 </head>
 <body>
-<h1>Cline Chrome Plugin</h1>
+<div class="header">
+    <h1>ArXiv Reader</h1>
+</div>
 
-<div class="message" id="message"></div>
+<div class="nav-tabs">
+    <button class="nav-tab active" data-section="loginForm">Auth</button>
+    <button class="nav-tab" data-section="configSection">Config</button>
+    <button class="nav-tab" data-section="dashboardSection">Dashboard</button>
+</div>
+
+<div class="content">
+    <div class="message" id="message"></div>
 
 <div class="form-section active" id="loginForm">
     <input id="loginUsername" placeholder="Username" required type="text">
@@ -92,7 +289,169 @@
 <div class="form-section" id="loggedInSection">
     <p>Logged in as: <span id="currentUsername"></span></p>
     <button id="openChatbotBtn">Open Chatbot</button>
-    <button id="logoutBtn">Logout</button>
+    <button id="logoutBtn" class="secondary">Logout</button>
+</div>
+
+<!-- Configuration Section -->
+<div class="form-section" id="configSection">
+    <div class="config-group">
+        <h3>API Settings</h3>
+        <div class="config-item">
+            <label for="apiEndpoint">API Endpoint</label>
+            <input type="url" id="apiEndpoint" placeholder="http://localhost:8051" />
+        </div>
+        <div class="config-item">
+            <label for="apiKey">API Key (Optional)</label>
+            <input type="password" id="apiKey" placeholder="Enter your API key" />
+        </div>
+        <div class="config-item">
+            <label for="requestTimeout">Request Timeout (seconds)</label>
+            <input type="number" id="requestTimeout" min="5" max="300" value="30" />
+        </div>
+    </div>
+
+    <div class="config-group">
+        <h3>Model Settings</h3>
+        <div class="config-item">
+            <label for="defaultModel">Default Model</label>
+            <select id="defaultModel">
+                <option value="llama3.1-8b">Llama 3.1 8B</option>
+                <option value="llama3.1-70b">Llama 3.1 70B</option>
+                <option value="mixtral-8x7b">Mixtral 8x7B</option>
+            </select>
+        </div>
+        <div class="config-item">
+            <label for="maxTokens">Max Tokens</label>
+            <input type="number" id="maxTokens" min="100" max="4000" value="1000" />
+        </div>
+        <div class="config-item">
+            <label for="temperature">Temperature</label>
+            <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.7" />
+            <span id="temperatureValue">0.7</span>
+        </div>
+    </div>
+
+    <div class="config-group">
+        <h3>Extension Preferences</h3>
+        <div class="config-item">
+            <label for="autoSummarize">Auto-summarize ArXiv papers</label>
+            <label class="toggle-switch">
+                <input type="checkbox" id="autoSummarize" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="config-item">
+            <label for="showNotifications">Show notifications</label>
+            <label class="toggle-switch">
+                <input type="checkbox" id="showNotifications" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="config-item">
+            <label for="saveHistory">Save chat history</label>
+            <label class="toggle-switch">
+                <input type="checkbox" id="saveHistory" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <button id="saveConfig">Save Configuration</button>
+    <button id="resetConfig" class="secondary">Reset to Defaults</button>
+</div>
+
+<!-- Dashboard Section -->
+<div class="form-section" id="dashboardSection">
+    <div class="dashboard-card">
+        <h3>User Profile</h3>
+        <div class="stat-item">
+            <span>User ID</span>
+            <span class="stat-value" id="userId">Loading...</span>
+        </div>
+        <div class="stat-item">
+            <span>Member Since</span>
+            <span class="stat-value" id="memberSince">Loading...</span>
+        </div>
+        <div class="stat-item">
+            <span><span class="status-indicator status-online"></span>API Connection</span>
+            <span class="stat-value" id="apiStatus">Checking...</span>
+        </div>
+    </div>
+
+    <div class="dashboard-card">
+        <h3>Chat Metrics</h3>
+        <div class="stat-item">
+            <span>Total Chats</span>
+            <span class="stat-value" id="totalChats">Loading...</span>
+        </div>
+        <div class="stat-item">
+            <span>Active Chats</span>
+            <span class="stat-value" id="activeChats">Loading...</span>
+        </div>
+        <div class="stat-item">
+            <span>Recent Chats</span>
+            <span class="stat-value" id="recentChats">Loading...</span>
+        </div>
+        <div class="stat-item">
+            <span>Avg Usage/Chat</span>
+            <span class="stat-value" id="avgUsagePerChat">Loading...</span>
+        </div>
+    </div>
+
+    <div class="dashboard-card">
+        <h3>Document Metrics</h3>
+        <div class="stat-item">
+            <span>Total Documents</span>
+            <span class="stat-value" id="totalDocuments">Loading...</span>
+        </div>
+        <div class="stat-item">
+            <span>Indexed Documents</span>
+            <span class="stat-value" id="indexedDocuments">Loading...</span>
+        </div>
+        <div class="stat-item">
+            <span>Pending Documents</span>
+            <span class="stat-value" id="pendingDocuments">Loading...</span>
+        </div>
+        <div class="stat-item">
+            <span>Failed Documents</span>
+            <span class="stat-value" id="failedDocuments">Loading...</span>
+        </div>
+        <div class="stat-item">
+            <span>Pages Processed</span>
+            <span class="stat-value" id="totalPagesProcessed">Loading...</span>
+        </div>
+    </div>
+
+    <div class="dashboard-card">
+        <h3>Usage Analytics</h3>
+        <div class="stat-item">
+            <span>Total Usage</span>
+            <span class="stat-value" id="totalUsage">Loading...</span>
+        </div>
+        <div class="stat-item">
+            <span>Chat Usage</span>
+            <span class="stat-value" id="chatUsage">Loading...</span>
+        </div>
+        <div class="stat-item">
+            <span>Document Usage</span>
+            <span class="stat-value" id="documentUsage">Loading...</span>
+        </div>
+    </div>
+
+    <div class="dashboard-card">
+        <h3>Recent Activity</h3>
+        <div id="recentActivity">
+            <p style="color: #6c757d; text-align: center; margin: 20px 0;">Loading...</p>
+        </div>
+    </div>
+
+    <div class="dashboard-card">
+        <h3>Actions</h3>
+        <button id="refreshDashboard">Refresh Data</button>
+        <button id="exportData">Export Data</button>
+        <button id="clearData" class="secondary">Clear All Data</button>
+    </div>
+</div>
 </div>
 
 <script type="module" src="popup.js"></script>
