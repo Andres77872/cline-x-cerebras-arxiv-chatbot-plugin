@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Arxiv Reader",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "author": "Andres77872",
   "action": {
     "default_popup": "popup/popup.html"
@@ -21,6 +21,7 @@
         "content/modules/embedded-chatbot.js",
         "content/modules/chat-logic.js",
         "content/modules/podcast.js",
+        "content/modules/resume.js",
         "content/content.js"
       ]
     }

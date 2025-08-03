@@ -20,6 +20,7 @@ class ArxivChatbotContentScript {
         this.embeddedChatbot = new window.ArxivChatbot.EmbeddedChatbot();
         this.chatLogic = new window.ArxivChatbot.ChatLogic();
         this.podcast = new window.ArxivChatbot.Podcast();
+        this.resume = new window.ArxivChatbot.Resume();
 
         // Initialize API client
         this.apiClient = this.chromeMessaging.createApiClient();
@@ -44,6 +45,12 @@ class ArxivChatbotContentScript {
 
         // Initialize podcast with dependencies
         this.podcast.initialize(
+            this.apiClient,
+            this.utilities.showFloatingMessage.bind(this.utilities)
+        );
+
+        // Initialize resume with dependencies
+        this.resume.initialize(
             this.apiClient,
             this.utilities.showFloatingMessage.bind(this.utilities)
         );
@@ -98,7 +105,7 @@ class ArxivChatbotContentScript {
                 this.openChatbot();
                 break;
             case 'resume':
-                this.utilities.showFloatingMessage('Resume feature coming soon!', false);
+                this.generateResume();
                 break;
             case 'podcast':
                 this.generatePodcast();
@@ -194,6 +201,49 @@ class ArxivChatbotContentScript {
         } catch (error) {
             console.error('Error creating podcast:', error);
             this.utilities.showFloatingMessage('Error creating podcast interface', false);
+            return false;
+        }
+    }
+
+    // Generate resume for current paper
+    async generateResume() {
+        try {
+            console.log('Creating standalone resume interface from floating button');
+
+            // Check if user is logged in first
+            const isLoggedIn = await this.chromeMessaging.auth.isLoggedIn();
+            if (!isLoggedIn) {
+                this.utilities.showFloatingMessage('Please log in first by clicking the extension icon', false);
+                return false;
+            }
+
+            // Get current paper info
+            const paperInfo = this.paperInfo.getPaperInfo();
+            if (!paperInfo || !paperInfo.url) {
+                this.utilities.showFloatingMessage('Please navigate to an arXiv paper page first', false);
+                return false;
+            }
+
+            // Check if resume window is already open
+            if (this.resume.isResumeWindowOpen()) {
+                this.utilities.showFloatingMessage('Resume is already open', false);
+                return false;
+            }
+
+            // Create standalone resume interface
+            const success = await this.resume.createStandaloneResume(paperInfo);
+            
+            if (success) {
+                this.utilities.showFloatingMessage('Resume interface opened!');
+                return true;
+            } else {
+                this.utilities.showFloatingMessage('Failed to create resume interface', false);
+                return false;
+            }
+
+        } catch (error) {
+            console.error('Error creating resume:', error);
+            this.utilities.showFloatingMessage('Error creating resume interface', false);
             return false;
         }
     }

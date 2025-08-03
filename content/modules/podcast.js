@@ -9,6 +9,7 @@ window.ArxivChatbot.Podcast = class {
         this.currentAudioContext = null;
         this.audioQueue = [];
         this.isPlaying = false;
+        this.currentAudioSource = null;
         this.podcastWindow = null;
         this.podcastContainer = null;
         this.textContainer = null;
@@ -17,6 +18,7 @@ window.ArxivChatbot.Podcast = class {
         this.isGenerating = false;
         this.arxivPaperUrl = null;
         this.paperInfo = null;
+        this.audioContextResumed = false;
     }
 
     // Initialize with dependencies
@@ -466,28 +468,43 @@ window.ArxivChatbot.Podcast = class {
 
     // Handle audio segments
     async handleAudioSegment(segment) {
-        if (!segment.content || !this.currentAudioContext) return;
+        if (!segment.content || !this.currentAudioContext) {
+            console.warn('Cannot handle audio segment: missing content or audio context');
+            return;
+        }
 
         try {
+            // Ensure audio context is resumed (required by browsers for user interaction)
+            await this.ensureAudioContextResumed();
+            
             // Decode base64 audio content
             const audioData = this.base64ToArrayBuffer(segment.content);
             
             // Decode audio data
             const audioBuffer = await this.currentAudioContext.decodeAudioData(audioData);
             
-            // Add to audio queue
-            this.audioQueue.push({
+            // Add to audio queue with enhanced metadata
+            const audioItem = {
                 buffer: audioBuffer,
-                segmentId: segment.segment_id,
-                timestamp: segment.timestamp
-            });
+                segmentId: segment.segment_id || Date.now(),
+                timestamp: segment.timestamp || Date.now(),
+                duration: audioBuffer.duration,
+                processed: false
+            };
+            
+            this.audioQueue.push(audioItem);
+            console.log(`Audio segment queued: ${audioItem.segmentId}, duration: ${audioItem.duration.toFixed(2)}s, queue length: ${this.audioQueue.length}`);
 
             // Start playing if not already playing
-            if (!this.isPlaying) {
+            if (!this.isPlaying && !this.currentAudioSource) {
                 this.playNextAudio();
             }
         } catch (error) {
             console.error('Failed to handle audio segment:', error);
+            // Show user-friendly error message
+            if (this.onShowMessage) {
+                this.onShowMessage('Failed to process audio segment. Continuing with next audio.', 'warning');
+            }
         }
     }
 
@@ -501,9 +518,40 @@ window.ArxivChatbot.Podcast = class {
         return bytes.buffer;
     }
 
+    // Ensure audio context is resumed (required by browsers)
+    async ensureAudioContextResumed() {
+        if (!this.currentAudioContext) {
+            throw new Error('Audio context not initialized');
+        }
+        
+        if (this.currentAudioContext.state === 'suspended' && !this.audioContextResumed) {
+            try {
+                await this.currentAudioContext.resume();
+                this.audioContextResumed = true;
+                console.log('Audio context resumed successfully');
+            } catch (error) {
+                console.error('Failed to resume audio context:', error);
+                throw error;
+            }
+        }
+    }
+
     // Play next audio in queue
     async playNextAudio() {
+        // If no audio in queue, stop playback
         if (this.audioQueue.length === 0) {
+            this.isPlaying = false;
+            this.currentAudioSource = null;
+            this.updateControls();
+            console.log('Audio queue empty, playback finished');
+            return;
+        }
+
+        // Ensure audio context is ready
+        try {
+            await this.ensureAudioContextResumed();
+        } catch (error) {
+            console.error('Cannot resume audio context:', error);
             this.isPlaying = false;
             this.updateControls();
             return;
@@ -513,69 +561,127 @@ window.ArxivChatbot.Podcast = class {
         this.updateControls();
 
         const audioItem = this.audioQueue.shift();
+        audioItem.processed = true;
+        
+        console.log(`Playing audio segment: ${audioItem.segmentId}, duration: ${audioItem.duration.toFixed(2)}s, remaining in queue: ${this.audioQueue.length}`);
         
         try {
+            // Stop current audio source if exists
+            if (this.currentAudioSource) {
+                try {
+                    this.currentAudioSource.stop();
+                } catch (e) {
+                    // Ignore errors when stopping already stopped sources
+                }
+            }
+            
+            // Create new audio source
             const source = this.currentAudioContext.createBufferSource();
             source.buffer = audioItem.buffer;
             source.connect(this.currentAudioContext.destination);
             
+            // Store reference for potential stopping
+            this.currentAudioSource = source;
+            
+            // Set up event handlers
             source.onended = () => {
-                // Play next audio after current one ends
+                console.log(`Audio segment finished: ${audioItem.segmentId}`);
+                this.currentAudioSource = null;
+                // Automatically play next audio after current one ends
                 this.playNextAudio();
             };
             
+            source.onerror = (error) => {
+                console.error('Audio source error:', error);
+                this.currentAudioSource = null;
+                // Continue with next audio on error
+                this.playNextAudio();
+            };
+            
+            // Start playback
             source.start();
+            
         } catch (error) {
             console.error('Failed to play audio:', error);
+            this.currentAudioSource = null;
+            
+            // Show user-friendly error and continue with next audio
+            if (this.onShowMessage) {
+                this.onShowMessage('Failed to play audio segment. Continuing with next audio.', 'warning');
+            }
+            
             // Continue with next audio
             this.playNextAudio();
         }
     }
 
     // Toggle play/pause
-    async togglePlayPause() {
-        // If podcast hasn't been generated yet, start generation
-        if (!this.isGenerating && this.currentSegments.length === 0) {
-            const statusElement = document.getElementById('podcast-status-text');
-            if (statusElement) {
-                statusElement.textContent = '🔐 Checking authentication...';
-            }
-            
-            // Check authentication before starting
-            const authData = await this.getSessionToken();
-            if (!authData || !authData.sessionToken) {
-                const statusElement = document.getElementById('podcast-status-text');
-                if (statusElement) {
-                    statusElement.textContent = '❌ Please log in first by clicking the extension icon';
-                }
-                this.onShowMessage?.('Authentication required. Please log in first.', 'error');
-                return;
-            }
-            
-            // Start podcast generation
-            await this.startPodcastGeneration();
+    togglePlayPause() {
+        const playButton = document.getElementById('podcast-play-pause');
+        if (!playButton) {
+            console.error('Play button not found! Looking for ID: podcast-play-pause');
             return;
         }
-        
-        // Handle audio playback pause/resume
-        if (this.currentAudioContext.state === 'suspended') {
-            this.currentAudioContext.resume();
-        } else if (this.currentAudioContext.state === 'running') {
-            this.currentAudioContext.suspend();
+
+        if (this.isGenerating) {
+            // If currently generating, stop generation
+            console.log('Stopping podcast generation');
+            this.isGenerating = false;
+            this.stopPodcast();
+            playButton.textContent = '▶️ Generate & Play';
+            playButton.disabled = false;
+            
+            const statusElement = document.getElementById('podcast-status-text');
+            if (statusElement) {
+                statusElement.textContent = '⏸️ Generation stopped';
+            }
+        } else if (this.isPlaying || this.currentAudioSource) {
+            // Pause/stop playback
+            console.log('Pausing podcast playback');
+            this.stopPodcast();
+            playButton.textContent = '▶️ Generate & Play';
+        } else {
+            // Start or resume playback
+            if (this.audioQueue.length > 0) {
+                // Resume playing from queue
+                console.log('Resuming playback from queue');
+                playButton.textContent = '⏸️ Pause';
+                this.playNextAudio();
+            } else {
+                // Start new generation
+                console.log('Starting new podcast generation');
+                playButton.textContent = '⏸️ Generating...';
+                playButton.disabled = true;
+                this.startPodcastGeneration();
+            }
         }
-        this.updateControls();
     }
 
     // Stop podcast playback
     stopPodcast() {
-        this.audioQueue = [];
-        this.isPlaying = false;
+        console.log('Stopping podcast playback');
         
-        if (this.currentAudioContext && this.currentAudioContext.state === 'running') {
-            this.currentAudioContext.suspend();
+        // Stop current audio if playing
+        if (this.currentAudioSource) {
+            try {
+                this.currentAudioSource.stop();
+            } catch (error) {
+                // Ignore errors when stopping already stopped sources
+                console.warn('Error stopping audio source:', error);
+            }
+            this.currentAudioSource = null;
         }
         
+        // Clear state
+        this.isPlaying = false;
+        this.audioQueue = [];
+        
+        // Clear any ongoing generation
+        this.isGenerating = false;
+        
         this.updateControls();
+        
+        console.log('Podcast playback stopped, queue cleared');
     }
 
     // Update control button states
@@ -611,26 +717,44 @@ window.ArxivChatbot.Podcast = class {
 
     // Clear current podcast
     clearPodcast() {
-        this.stopPodcast();
-        this.currentSegments = [];
-        
-        if (this.textContainer) {
-            this.textContainer.textContent = '';
-        }
-        
-        const statusElement = document.getElementById('podcast-status-text');
-        if (statusElement) {
-            statusElement.textContent = 'Ready to generate podcast';
-        }
+    console.log('Clearing podcast data');
+    
+    this.stopPodcast();
+    this.currentSegments = [];
+    this.arxivPaperUrl = null;
+    this.paperInfo = null;
+    this.audioContextResumed = false;
+    
+    // Clear UI
+    const textContainer = document.getElementById('podcast-text-content');
+    if (textContainer) {
+        textContainer.innerHTML = '';
     }
+    
+    const statusElement = document.getElementById('podcast-status-text');
+    if (statusElement) {
+        statusElement.textContent = 'Ready to generate podcast';
+    }
+    
+    console.log('Podcast cleared successfully');
+}
 
-    // Get current podcast state
-    getPodcastState() {
-        return {
-            isGenerating: this.isGenerating,
-            isPlaying: this.isPlaying,
-            segmentCount: this.currentSegments.length,
-            audioQueueLength: this.audioQueue.length
-        };
-    }
+// Get current podcast state
+getPodcastState() {
+    return {
+        isPlaying: this.isPlaying,
+        isGenerating: this.isGenerating,
+        queueLength: this.audioQueue.length,
+        segmentCount: this.currentSegments.length,
+        hasContent: this.currentSegments.length > 0,
+        currentAudioSource: !!this.currentAudioSource,
+        audioContextState: this.currentAudioContext?.state || 'unknown',
+        audioContextResumed: this.audioContextResumed
+    };
+}
 };
+
+// Export the class
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = window.ArxivChatbot.Podcast;
+}
